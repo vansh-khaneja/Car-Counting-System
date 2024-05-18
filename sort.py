@@ -1,3 +1,5 @@
+""" This file sort.py has been taken from https://github.com/abewley/sort """
+
 """
     SORT: A Simple, Online and Realtime Tracker
     Copyright (C) 2016-2020 Alex Bewley alex@bewley.ai
