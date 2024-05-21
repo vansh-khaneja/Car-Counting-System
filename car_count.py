@@ -18,6 +18,14 @@ class_list = [
 #image = cv2.imread("C:/Users/VANSH KHANEJA/Downloads/carview.png")
 cap = cv2.VideoCapture("C:/Users/VANSH KHANEJA/Downloads/5473765-uhd_3840_2160_24fps.mp4")
 
+mask = cv2.imread('mask.png', cv2.IMREAD_GRAYSCALE)
+mask_for_detection = cv2.imread('mask.png')
+_, mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
+
+overlay_color = (0, 255, 0)  # Green color
+alpha = 0.5  # Transparency factor (0: fully transparent, 1: fully opaque)
+
+
 tracker = Sort(max_age=20,min_hits=3,iou_threshold=0.3)
 
 limits = [160,400,530,400]
@@ -28,11 +36,12 @@ while True:
 
     resize = cv2.resize(image,(700,500))
 
+    color_mask = np.zeros_like(resize)
+    color_mask[mask == 255] = overlay_color
 
+    mask_added = cv2.addWeighted(resize, 1, color_mask, alpha, 0)
 
-    mask = cv2.imread('mask.png')
-
-    imgRegion = cv2.bitwise_and(resize,mask)
+    imgRegion = cv2.bitwise_and(resize,mask_for_detection)
 
     results = model(imgRegion,stream=True)
     detections = np.empty((0,5))
@@ -49,22 +58,22 @@ while True:
                 currentArray = np.array([x1,y1,x2,y2,currentConf])
                 detections = np.vstack((detections,currentArray))
     resultsTracker = tracker.update(detections)
-    cv2.line(resize,(160,400),(530,400),(0,0,255),5)
+    cv2.line(mask_added,(160,400),(530,400),(0,0,255),5)
     for result in resultsTracker:
         x1,y1,x2,y2,Id = result
         w,h = x2-x1,y2-y1
         cx,cy = int(x1+w//2),int(y1+h//2)
-        cv2.rectangle(resize,(int(x1),int(y1)),(int(x2),int(y2)),(255,0,0),1)
-        cv2.putText(resize,str(int(Id)), (int(x1),int(y1)-3), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 255,2, cv2.LINE_AA, False)
-        cv2.circle(resize,(cx,cy),5,(0,255,0),-1)
+        cv2.rectangle(mask_added,(int(x1),int(y1)),(int(x2),int(y2)),(255,0,0),1)
+        cv2.putText(mask_added,str(int(Id)), (int(x1),int(y1)-3), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 255,2, cv2.LINE_AA)
+        cv2.circle(mask_added,(cx,cy),5,(0,255,0),-1)
 
         if limits[0]<cx<limits[2] and limits[1]-20<cy<limits[1]+20:
             if totalCount.count(Id)==0:
                 totalCount.append(Id)
 
-        cv2.putText(resize,str(len(totalCount)), (50,50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 255,2, cv2.LINE_AA, False)
+        cv2.putText(mask_added,"Cars Count: "+str(len(totalCount)), (50,50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 255,2, cv2.LINE_AA, False)
    
         
-    cv2.imshow("Image",resize)
+    cv2.imshow("Image",mask_added)
 
     cv2.waitKey(1)
